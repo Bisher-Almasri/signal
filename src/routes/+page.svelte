@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ChatList from '$lib/components/ChatList.svelte';
+	import ChatView from '$lib/components/ChatView.svelte';
 
 	interface Message {
 		id: number;
@@ -252,17 +253,64 @@
 	];
 
 	let activeChat = 1;
-	$: activeChatData = chats.find((chat) => chat.id === activeChat);
+	let showWaveTransition = false;
+	let previousActiveChat = -1;
+
+	$: activeChatData = chats.find((chat) => chat.id === activeChat) || null;
+
+	$: if (activeChat !== previousActiveChat && activeChat !== -1) {
+		showWaveTransition = true;
+		previousActiveChat = activeChat;
+
+		setTimeout(() => {
+			showWaveTransition = false;
+		}, 2000);
+	}
+
+	function handleSelectChat(event: CustomEvent<number>) {
+		activeChat = event.detail;
+	}
+
+	function handleSendMessage(event: CustomEvent<string>) {
+		if (!activeChatData) return;
+
+		const message: Message = {
+			id: Date.now(),
+			message: event.detail,
+			timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+			isOwn: true
+		};
+
+		activeChatData.messages = [...activeChatData.messages, message];
+		activeChatData.lastMessage = event.detail;
+	}
+
+	function handleOpenSettings() {
+		console.log('Open settings');
+	}
+
+	function handleNewMessage() {
+		console.log('New message');
+	}
+
+	function handleNewGroup() {
+		console.log('New group');
+	}
 </script>
 
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<div class="flex h-screen bg-[#0D1117]">
+	<!-- Chat List Sidebar -->
+	<div class="w-80">
+		<ChatList
+			{chats}
+			{activeChat}
+			on:selectChat={handleSelectChat}
+			on:openSettings={handleOpenSettings}
+			on:newMessage={handleNewMessage}
+			on:newGroup={handleNewGroup}
+		/>
+	</div>
 
-<ChatList
-	{activeChat}
-	{chats}
-	onNewGroup={() => {}}
-	onNewMessage={() => {}}
-	onOpenSettings={() => {}}
-	onSelectChat={() => {}}
-/>
+	<!-- Main Chat Area -->
+	<ChatView chat={activeChatData} {showWaveTransition} on:sendMessage={handleSendMessage} />
+</div>
